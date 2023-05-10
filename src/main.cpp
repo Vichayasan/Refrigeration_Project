@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
+#include <REG_CONFIG.h>
 
 // tempurature and humidity
 uint32_t start;
@@ -23,7 +24,6 @@ const char* MQTT_server = "https://thingcontrol.io/";
 const char* MQTT_username = "sreshthaputrav@gmail.com";
 const char* MQTT_pass = "arsenal412";
 const int port = 8883;
-const char* CAcert = "rootCACertificate";
 
 WiFiClientSecure secureClient;
 PubSubClient client(secureClient);
@@ -45,7 +45,7 @@ void setupMQTT(){
   Serial.print("\nConnected to");
 
   //MQTT setup
-  secureClient.setCACert(CAcert);
+  secureClient.setCACert(rootCACertificat);
 
 }
 
