@@ -9,6 +9,8 @@
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
 #include <REG_CONFIG.h>
+#include <BluetoothSerial.h>
+#include <ArduinoJson.h>
 
 // tempurature and humidity
 uint32_t start;
@@ -19,14 +21,15 @@ uint32_t connectionFails = 0;
 
 //WIFI
 const char* ssid = "AndriodAP0AAD";
-const char* pass = "HelloWorld";
+const char* password = "HelloWorld";
 const char* MQTT_server = "https://thingcontrol.io/";
-const char* MQTT_username = "sreshthaputrav@gmail.com";
-const char* MQTT_pass = "arsenal412";
+const char* user = "sreshthaputrav@gmail.com";
+const char* pass = "arsenal412";
 const int port = 8883;
+const char* id = "esp32dev";
 
-WiFiClientSecure secureClient;
-PubSubClient client(secureClient);
+WiFiClientSecure wifiClient;
+PubSubClient client(wifiClient);
 
 void setupMQTT(){
   //Wifi setup
@@ -45,8 +48,23 @@ void setupMQTT(){
   Serial.print("\nConnected to");
 
   //MQTT setup
-  secureClient.setCACert(rootCACertificat);
-
+  WiFiClientSecure *client = new WiFiClientSecure;
+  client->setCACert(rootCACertificate);
+}
+  //connect to broker
+void ConnectBroker(){
+  client.setServer(MQTT_server, port);
+  while(!client.connected()){
+    Serial.println("Connecting to MQTT broker . . .");
+    if(client.connect(id, user, pass)){
+      Serial.println("connnect to MQTT broker");
+    }
+    else{
+      Serial.print("Fail with state");
+      Serial.print(client.state());
+      delay(2000);
+    }
+  }
 }
 
 void setup() {
@@ -55,6 +73,9 @@ void setup() {
 
   //WIFI
   setupMQTT();
+
+  //connect to broker
+  void ConnectBroker();
 
   // tempurature and humidity
   Serial.print("SHT2x_LIB_VERSION: \t");
