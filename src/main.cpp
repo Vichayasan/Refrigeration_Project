@@ -11,6 +11,7 @@
 #include <REG_CONFIG.h>
 #include <BluetoothSerial.h>
 #include <ArduinoJson.h>
+#include <WiFiClient.h>
 
 // tempurature and humidity
 uint32_t start;
@@ -48,8 +49,7 @@ void setupMQTT(){
   Serial.print("\nConnected to");
 
   //MQTT setup
-  WiFiClientSecure *client = new WiFiClientSecure;
-  client->setCACert(rootCACertificate);
+  //int FirmwareVersionCheck::setCACert(rootCACertificate);
 }
   //connect to broker
 void ConnectBroker(){
@@ -75,7 +75,7 @@ void setup() {
   setupMQTT();
 
   //connect to broker
-  void ConnectBroker();
+  ConnectBroker();
 
   // tempurature and humidity
   Serial.print("SHT2x_LIB_VERSION: \t");
