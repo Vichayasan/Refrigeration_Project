@@ -8,10 +8,6 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
-#include <REG_CONFIG.h>
-#include <BluetoothSerial.h>
-#include <ArduinoJson.h>
-#include <WiFiClient.h>
 
 // tempurature and humidity
 uint32_t start;
@@ -21,24 +17,24 @@ SHT2x sht;
 uint32_t connectionFails = 0;
 
 //WIFI
-const char* ssid = "AndriodAP0AAD";
+const char* ssid = "MyWifi";
 const char* password = "HelloWorld";
-const char* MQTT_server = "https://thingcontrol.io/";
-const char* user = "sreshthaputrav@gmail.com";
-const char* pass = "arsenal412";
+const char* MQTT_server = "mqtt.thingcontrol.io/";
+const char* user = "202539";
+const char* pass = "";
 const int port = 8883;
-const char* id = "esp32dev";
+const char* id = "e86009f0-ed53-11ed-ba9d-dd9676207dd2";
 
 WiFiClientSecure wifiClient;
 PubSubClient client(wifiClient);
 
-void setupMQTT(){
+void setupWifi(){
   //Wifi setup
   delay(100);
   Serial.print("\nconnecting to");
   Serial.print(ssid);
 
-  WiFi.begin(ssid,pass);
+  WiFi.begin(ssid,password);
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -46,21 +42,20 @@ void setupMQTT(){
     Serial.print("-");
   }
   
-  Serial.print("\nConnected to");
-
-  //MQTT setup
-  //int FirmwareVersionCheck::setCACert(rootCACertificate);
+  Serial.print("\nConnected to ");
+  Serial.print("IP address:");
+  Serial.println(WiFi.localIP());
 }
   //connect to broker
 void ConnectBroker(){
   client.setServer(MQTT_server, port);
   while(!client.connected()){
-    Serial.println("Connecting to MQTT broker . . .");
+    Serial.println("\nConnecting to MQTT broker . . .");
     if(client.connect(id, user, pass)){
-      Serial.println("connnect to MQTT broker");
+      Serial.println("\nconnnect to MQTT broker");
     }
     else{
-      Serial.print("Fail with state");
+      Serial.print("\nFail with state");
       Serial.print(client.state());
       delay(2000);
     }
@@ -72,7 +67,7 @@ void setup() {
   Serial.begin(115200);
 
   //WIFI
-  setupMQTT();
+  setupWifi();
 
   //connect to broker
   ConnectBroker();
