@@ -19,11 +19,11 @@ uint32_t connectionFails = 0;
 //WIFI
 const char* ssid = "MyWifi";
 const char* password = "HelloWorld";
-const char* MQTT_server = "mqtt.thingcontrol.io/";
+const char* MQTT_server = "mqtt.thingcontrol.io";
 const char* user = "202539";
 const char* pass = "";
 const int port = 8883;
-const char* id = "e86009f0-ed53-11ed-ba9d-dd9676207dd2";
+const char* id = "esp32dev";
 
 WiFiClientSecure wifiClient;
 PubSubClient client(wifiClient);
@@ -31,8 +31,8 @@ PubSubClient client(wifiClient);
 void setupWifi(){
   //Wifi setup
   delay(100);
-  Serial.print("\nconnecting to");
-  Serial.print(ssid);
+  Serial.print("\nconnecting to\t");
+  Serial.println(ssid);
 
   WiFi.begin(ssid,password);
 
@@ -43,20 +43,18 @@ void setupWifi(){
   }
   
   Serial.print("\nConnected to ");
-  Serial.print("IP address:");
-  Serial.println(WiFi.localIP());
+  
 }
   //connect to broker
 void ConnectBroker(){
   client.setServer(MQTT_server, port);
-  while(!client.connected()){
-    Serial.println("\nConnecting to MQTT broker . . .");
-    if(client.connect(id, user, pass)){
-      Serial.println("\nconnnect to MQTT broker");
+  while(client.connected()){
+    Serial.print("\nConnecting to MQTT broker . . .");
+    if(!client.connect("esp32dev", user, pass)){
     }
     else{
       Serial.print("\nFail with state");
-      Serial.print(client.state());
+      Serial.println(client.state());
       delay(2000);
     }
   }
@@ -68,12 +66,15 @@ void setup() {
 
   //WIFI
   setupWifi();
+  Serial.print("IP address:");
+  Serial.println(WiFi.localIP());
 
   //connect to broker
   ConnectBroker();
+  Serial.print("\nconnnected to MQTT broker");
 
   // tempurature and humidity
-  Serial.print("SHT2x_LIB_VERSION: \t");
+  Serial.print("\nSHT2x_LIB_VERSION: \t");
 
   sht.begin();
 
