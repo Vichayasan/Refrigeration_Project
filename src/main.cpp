@@ -38,7 +38,7 @@ void setupWifi(){
 
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(100);
+    delay(10000);
     Serial.print("-");
   }
   
@@ -55,8 +55,15 @@ void ConnectBroker(){
     else{
       Serial.print("\nFail with state");
       Serial.println(client.state());
-      delay(2000);
+      delay(20000);
     }
+  }
+}
+//Reconnect
+void ReconnectBroker(){
+  if (!client.connected()){
+    Serial.print("\ndisconnected from Broker");
+    ConnectBroker();
   }
 }
 
@@ -113,8 +120,8 @@ void loop() {
     // sht.reset();
   }
   Serial.println();
-  delay(1000);
+  delay(10000);
 
   //MQTT
-  
+  ReconnectBroker();
 }
