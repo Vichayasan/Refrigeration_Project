@@ -1,127 +1,162 @@
-#include <Arduino.h>
+/*#################################An example to connect thingcontro.io MQTT over TLS1.2###############################
 
-// tempurature and humidity
-#include<Wire.h>
-#include<SHT2x.h>
-
-//MQTT
-#include <WiFi.h>
+*/
+#include <ArduinoJson.h>
 #include <PubSubClient.h>
+#include <WiFi.h>
+
+#include <WiFiManager.h>
 #include <WiFiClientSecure.h>
+#include <Wire.h>
 
-// tempurature and humidity
-uint32_t start;
-uint32_t stop;
+// Modbus
+#include "REG_CONFIG.h"
+#include <HardwareSerial.h>
 
-SHT2x sht;
-uint32_t connectionFails = 0;
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <time.h>
+#include <WiFi.h>
 
-//WIFI
-const char* ssid = "MyWifi";
-const char* password = "HelloWorld";
-const char* MQTT_server = "mqtt.thingcontrol.io";
-const char* user = "202539";
-const char* pass = "";
-const int port = 8883;
-const char* id = "esp32dev";
+#include <stdbool.h>
+
+#define WIFI_AP  "MyWifi"
+#define WIFI_PASSWORD  "HelloWorld"
+
+String deviceToken = "202539";  //Sripratum@thingcontrio.io
+//String deviceToken = "tOkvPadbQqLFsmc0sCON";
+char thingsboardServer[] = "mqtt.thingcontrol.io";
+int status = WL_IDLE_STATUS;
+String downlink = "";
+char *bString;
+int PORT = 8883;
 
 WiFiClientSecure wifiClient;
 PubSubClient client(wifiClient);
 
-void setupWifi(){
-  //Wifi setup
-  delay(100);
-  Serial.print("\nconnecting to\t");
-  Serial.println(ssid);
+WiFiManager wifiManager;
 
-  WiFi.begin(ssid,password);
-
-  while (WiFi.status() != WL_CONNECTED)
+void reconnectMqtt()
+{
+  wifiClient.setInsecure();
+  if ( client.connect("e86009f0-ed53-11ed-ba9d-dd9676207dd2", deviceToken.c_str(), NULL) )
   {
-    delay(10000);
-    Serial.print("-");
-  }
-  
-  Serial.print("\nConnected to ");
-  
-}
-  //connect to broker
-void ConnectBroker(){
-  client.setServer(MQTT_server, port);
-  while(client.connected()){
-    Serial.print("\nConnecting to MQTT broker . . .");
-    if(!client.connect("esp32dev", user, pass)){
-    }
-    else{
-      Serial.print("\nFail with state");
-      Serial.println(client.state());
-      delay(20000);
-    }
-  }
-}
-//Reconnect
-void ReconnectBroker(){
-  if (!client.connected()){
-    Serial.print("\ndisconnected from Broker");
-    ConnectBroker();
-  }
-}
-
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(115200);
-
-  //WIFI
-  setupWifi();
-  Serial.print("IP address:");
-  Serial.println(WiFi.localIP());
-
-  //connect to broker
-  ConnectBroker();
-  Serial.print("\nconnnected to MQTT broker");
-
-  // tempurature and humidity
-  Serial.print("\nSHT2x_LIB_VERSION: \t");
-
-  sht.begin();
-
-  uint8_t stat = sht.getStatus();
-  Serial.print(stat, HEX);
-  Serial.println();
-
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-
-  // tempurature and humidity
-   if ( sht.isConnected()  )
-  {
-    start = micros();
-    bool b = sht.read();
-    stop = micros();
-
-    int error = sht.getError();
-    uint8_t stat = sht.getStatus();
-
-    
-    Serial.print("Temperatue: \t");
-    Serial.println(sht.getTemperature(), 1);
-    Serial.print("Humidity: \t");
-    Serial.println(sht.getHumidity(), 1);
-    delay(30000);
+    Serial.println( F("Connect MQTT Success."));
   }
   else
   {
-    connectionFails++;
-    Serial.print(millis());
-    Serial.print("\tNot connected:\t");
-    Serial.print(connectionFails);
-    // sht.reset();
+    Serial.print(F("Failed to Connect MQTT"));
   }
-  Serial.println();
-  delay(10000);
+}
 
-  //MQTT
-  ReconnectBroker();
+void setup() 
+{
+
+  Serial.begin(115200);
+
+  Serial.println();
+  Serial.println(F("***********************************"));
+
+  if (!wifiManager.autoConnect(WIFI_AP, WIFI_PASSWORD)) 
+  {
+    Serial.println("failed to connect and hit timeout");
+    //reset and try again, or maybe put it to deep sleep
+    //    ESP.reset();
+    delay(10000);
+  }
+
+  //  wifiClient.setFingerprint(fingerprint);
+  client.setServer( thingsboardServer, PORT );
+  Serial.println(client.connected());
+  reconnectMqtt();
+  
+  Serial.print("Start..");
+
+}
+
+void loop()
+{
+  status = WiFi.status();
+  if ( status == WL_CONNECTED)
+  {
+    if ( !client.connected() )
+    {
+      reconnectMqtt();
+    }
+    delay(5000);
+    client.loop();
+  }
+  if (currentMillis - starSendTeletMillis >= periodSendTelemetry)  //test whether the period has elapsed
+  {
+    readAnalog();
+    sendtelemetry();
+    writeSD();
+    starSendTeletMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+  }
+}
+
+void getMac()
+{
+  Serial.println("OK");
+  Serial.print("+deviceToken: ");
+  Serial.println(WiFi.macAddress());
+}
+
+void viewActive()
+{
+  Serial.println("OK");
+  Serial.print("+:WiFi, ");
+  Serial.println(WiFi.status());
+  if (client.state() == 0)
+  {
+    Serial.print("+:MQTT, [CONNECT] [rc = " );
+    Serial.print( client.state() );
+    Serial.println( " : retrying]" );
+  }
+  else
+  {
+    Serial.print("+:MQTT, [FAILED] [rc = " );
+    Serial.print( client.state() );
+    Serial.println( " : retrying]" );
+  }
+}
+
+void setWiFi()
+{
+  Serial.println("OK");
+  Serial.println("+:Reconfig WiFi  Restart...");
+  WiFiManager wifiManager;
+  wifiManager.resetSettings();
+  if (!wifiManager.startConfigPortal("ThingControlCommand"))
+  {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    //reset and try again, or maybe put it to deep sleep
+    //    ESP.reset();
+    delay(5000);
+  }
+  Serial.println("OK");
+  Serial.println("+:WiFi Connect");
+  //  wifiClient.setFingerprint(fingerprint);
+  client.setServer( thingsboardServer, PORT );  // secure port over TLS 1.2
+  reconnectMqtt();
+}
+
+
+void processToken()
+{
+  char *aString;
+  
+  //  aString = cmdHdl.readStringArg();
+  Serial.println("OK");
+  Serial.print("+:deviceToken , ");
+  Serial.println(F(aString));
+  deviceToken = aString;
+  reconnectMqtt();
+}
+
+void unrecognized(const char *command)
+{
+  Serial.println("ERROR");
 }
